@@ -13,8 +13,7 @@ Live at https://www.cybercyril.com/V-I/
 Copyright (c) 2024, [Cyril Monkewitz](https://www.cybercyril.com/)
 
 
-===
-bigfraction.js
 
+>bigfraction.js
 Copyright (c) 2023, [Robert Eisele](https://raw.org/)
 Licensed under the MIT license.

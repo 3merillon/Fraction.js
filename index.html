@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<!--
+MIT License
+
+© 2024 Cyril Monkewitz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V-I Chord Progression Chained Eternally</title>
+	<link rel="icon" href="favicon.ico" />
+    <script src="bigfraction.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #849396;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .toggle-section {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .toggle-section .arrow {
+            display: inline-block;
+            margin-left: 10px;
+            transition: transform 0.3s;
+            color: blue;
+        }
+
+        .toggle-section .arrow.down {
+            transform: rotate(90deg);
+        }
+
+        .toggle-content {
+            display: none;
+            max-width: 600px;
+            margin: 0 20px 20px 20px;
+        }
+
+        #baseFrequencyDisplay {
+            margin-top: 20px;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 2em;
+            border: 2px solid #4040ff;
+            border-radius: 8px;
+            padding: 10px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .fraction {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .fraction .line {
+            border-top: 1px solid black;
+            width: 100%;
+            text-align: center;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .input-group {
+            display: flex;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"], select {
+            width: 50%;
+            padding: 10px;
+            font-size: 1.2em;
+            border: 2px solid #4040ff;
+            border-radius: 8px;
+            margin-right: 10px;
+        }
+
+        input[type="submit"], a.button {
+            width: 100%;
+            max-width: 300px;
+            padding: 15px;
+            font-size: 1.2em;
+            text-align: center;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.3s;
+            margin-bottom: 10px;
+        }
+
+        input[type="submit"] {
+            background-color: #77dd77; /* pastel green */
+        }
+
+        input[type="submit"].disabled {
+            background-color: #cfcfcf; /* greyed out green */
+            cursor: not-allowed;
+        }
+
+        input[type="submit"]:hover:not(.disabled) {
+            background-color: #66cc66;
+        }
+
+        a.button {
+            background-color: #ff6961; /* pastel red */
+        }
+
+        a.button.disabled {
+            background-color: #cfcfcf; /* greyed out red */
+            cursor: not-allowed;
+        }
+
+        a.button:hover:not(.disabled) {
+            background-color: #ff5c5c;
+        }
+
+        select {
+            appearance: none;
+            background: #fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"><path fill="blue" stroke="blue" stroke-width="0" d="M2 0L0 2h4z"/></svg>') no-repeat right 10px center;
+            background-size: 10px;
+        }
+
+        select::-ms-expand {
+            display: none;
+        }
+    </style>
+    <script type="text/javascript">
+        "use strict";
+
+        let audioCtx;
+        let audioFlag = false;
+        const baseVolume = 0.025; // General volume
+        const memoryLimit = 200 * 1024 * 1024; // 200 MB memory limit for example
+
+        function unlockAudioContext() {
+            if (!audioFlag) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const buffer = audioCtx.createBuffer(1, 1, 22050);
+                const source = audioCtx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioCtx.destination);
+                source.start ? source.start(0) : source.noteOn(0);
+                setTimeout(() => {
+                    if (source.playbackState === source.PLAYING_STATE || source.playbackState === source.FINISHED_STATE) {
+                        audioFlag = true;
+                    }
+                }, 0);
+            }
+        }
+
+        function checkMemoryUsage() {
+            if (performance.memory && performance.memory.usedJSHeapSize > memoryLimit) {
+                console.warn("Memory usage exceeded limit. Stopping audio context.");
+                audioCtx.close();
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                audioFlag = false;
+                return false;
+            }
+            return true;
+        }
+
+        function updateBaseFrequencyDisplay(frequency) {
+            const fractionString = frequency.toFraction();
+            const [numerator, denominator] = fractionString.split('/');
+
+            const baseFrequencyDisplay = document.getElementById("baseFrequencyDisplay");
+            baseFrequencyDisplay.innerHTML = `
+                <div class="fraction">
+                    <div>${numerator}</div>
+                    <div class="line"></div>
+                    <div>${denominator === undefined ? '1' : denominator}</div>
+                </div>
+            `;
+        }
+
+        function playChainedProgression() {
+            if (!audioFlag) {
+                unlockAudioContext();
+            }
+            let timeoutID;
+            let curFreq = new Fraction(document.getElementById("frequency_Z").value);
+            const baseFreq = curFreq.clone();
+
+            function delayTimer() {
+                timeoutID = setTimeout(V_I, 4000);
+            }
+
+            document.getElementById("play_Z").classList.add("disabled");
+            document.getElementById("play_Z").disabled = true;
+            document.getElementById("stop_Z").classList.remove("disabled");
+
+            document.getElementById("stop_Z").addEventListener("click", () => {
+                clearTimeout(timeoutID);
+                audioCtx.close();
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                audioFlag = false;
+                document.getElementById("play_Z").classList.remove("disabled");
+                document.getElementById("play_Z").disabled = false;
+                document.getElementById("stop_Z").classList.add("disabled");
+            });
+
+            function createOscillator(frequency, startTime, stopTime) {
+                const oscillator = audioCtx.createOscillator();
+                oscillator.type = document.getElementById("oscillatorType").value;
+                oscillator.frequency.value = frequency.valueOf();
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.value = 0;
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                gainNode.gain.setValueAtTime(0.001, audioCtx.currentTime + startTime);
+                gainNode.gain.exponentialRampToValueAtTime(baseVolume, audioCtx.currentTime + startTime + 0.02);
+                oscillator.start(audioCtx.currentTime + startTime);
+                oscillator.stop(audioCtx.currentTime + stopTime);
+                gainNode.gain.setValueAtTime(baseVolume, audioCtx.currentTime + stopTime - 0.07);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + stopTime);
+            }
+
+            function V_I() {
+                if (!checkMemoryUsage()) return;
+
+                // Update the display at the start of the progression
+                updateBaseFrequencyDisplay(curFreq);
+
+                createOscillator(curFreq, 0, 4);
+                createOscillator(curFreq.mul(new Fraction(5, 4)), 1, 4);
+                createOscillator(curFreq.mul(new Fraction(3, 2)), 2, 4);
+                createOscillator(curFreq.mul(new Fraction(7, 4)), 3, 4);
+
+                const D_gainNode = audioCtx.createGain();
+                D_gainNode.gain.value = 0;
+                D_gainNode.connect(audioCtx.destination);
+                D_gainNode.gain.setValueAtTime(0.001, audioCtx.currentTime + 4);
+                D_gainNode.gain.exponentialRampToValueAtTime(baseVolume, audioCtx.currentTime + 4.02);
+                D_gainNode.gain.linearRampToValueAtTime(0.007, audioCtx.currentTime + 8 - 0.07);
+                D_gainNode.gain.setValueAtTime(0.007, audioCtx.currentTime + 8 - 0.07);
+                D_gainNode.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 8);
+
+                createOscillator(curFreq, 4, 8);
+                createOscillator(curFreq.mul(new Fraction(4, 3)), 4, 8);
+                createOscillator(curFreq.mul(new Fraction(5, 3)), 4, 8);
+                createOscillator(curFreq.mul(new Fraction(2)), 4, 8);
+
+                curFreq = curFreq.mul(new Fraction(4, 3));
+                if (curFreq.compare(baseFreq.mul(2)) >= 0) {
+                    curFreq = curFreq.div(2);
+                }
+
+                delayTimer();
+            }
+
+            V_I();
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("audio_Z").addEventListener("submit", (e) => {
+                e.preventDefault();
+                playChainedProgression();
+            });
+
+            const toggleSection = document.querySelector('.toggle-section');
+            const toggleContent = document.querySelector('.toggle-content');
+            const arrow = document.querySelector('.arrow');
+
+            toggleSection.addEventListener('click', () => {
+                const isHidden = toggleContent.style.display === 'none';
+                toggleContent.style.display = isHidden ? 'block' : 'none';
+                arrow.classList.toggle('down', isHidden);
+            });
+
+            // Hide the content and set arrow to point down by default
+            toggleContent.style.display = 'none';
+        });
+    </script>
+</head>
+<body>
+    <h1>V-I Chord Progression Chained Eternally</h1>
+    <div class="toggle-section">
+        <span>Show/Hide Description</span>
+        <span class="arrow">&#9654;</span>
+    </div>
+    <div class="toggle-content">
+        <p>V-I chord progression chained eternally, base goes down an octave if it's higher than an octave over base frequency. Theoretically the base will always be different so you can listen until the end of time without the music ever repeating. (limited to 200MB of memory usage)</p>
+    </div>
+    <form id="audio_Z">
+        <div class="input-group">
+            <input type="text" id="frequency_Z" name="frequency_Z" value="442">
+            <select id="oscillatorType" name="oscillatorType">
+                <option value="sine">Sine</option>
+                <option value="square">Square</option>
+                <option value="sawtooth">Sawtooth</option>
+                <option value="triangle" selected>Triangle</option>
+            </select>
+        </div>
+        <input type="submit" id="play_Z" name="play_Z" value="Play">
+        <a id="stop_Z" class="button disabled">Stop</a>
+    </form>
+    <div id="baseFrequencyDisplay">
+        <div class="fraction">
+            <div>&nbsp;</div>
+            <div class="line"></div>
+            <div>&nbsp;</div>
+        </div>
+    </div>
+</body>
+</html>

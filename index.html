@@ -289,6 +289,7 @@ SOFTWARE.
                 createOscillator(curFreq.mul(new Fraction(2)), 4, 8);
 
                 curFreq = curFreq.mul(new Fraction(4, 3));
+				
                 if (curFreq.compare(baseFreq.mul(2)) >= 0) {
                     curFreq = curFreq.div(2);
                 }

@@ -122,7 +122,7 @@ SOFTWARE.
         }
 
         input[type="submit"], a.button {
-            width: 100%;
+            width: 30%;
             max-width: 300px;
             padding: 15px;
             font-size: 1.2em;
@@ -288,7 +288,7 @@ SOFTWARE.
                 createOscillator(curFreq.mul(new Fraction(5, 3)), 4, 8);
                 createOscillator(curFreq.mul(new Fraction(2)), 4, 8);
 
-                curFreq = curFreq.mul(new Fraction(4, 3));
+                curFreq = curFreq.mul(new Fraction(4, 3)).simplify(0.000);
                 if (curFreq.compare(baseFreq.mul(2)) >= 0) {
                     curFreq = curFreq.div(2);
                 }
